@@ -1,0 +1,6 @@
+{
+  "name": "warrdoge-skills",
+  "skills": [
+    "./skills/engineering/functional-simplicity"
+  ]
+}
