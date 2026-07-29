@@ -1,0 +1,39 @@
+WarrDoge skills
+Copyright 2026 WarrDoge
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+--------------------------------------------------------------------------------
+
+skills/orchestration/herdr/SKILL.md
+
+This file is a derivative work of SKILL.md from the Herdr project:
+
+    https://github.com/ogulcancelik/herdr
+    Copyright the Herdr authors
+    Licensed under the Apache License, Version 2.0
+
+Changes made to the original:
+
+  - Added "Never target yourself" — excluding $HERDR_PANE_ID from fan-out
+    target lists.
+  - Added "Collect results through files, not the screen" — promotes the
+    original's alt-screen fallback to the default result channel for work
+    whose output will be acted on, with rules for per-worker paths, empty-file
+    handling, and staleness.
+  - Added "Coordinate a fleet" — multi-worker roster management, bounding
+    worker count and timeouts, failure reporting, and when to prefer
+    in-process subagents over a Herdr fleet.
+  - Added "Handle a blocked worker" — permission posture at spawn, escalating
+    approval prompts to the user rather than answering them, and not
+    re-prompting a blocked agent.
+  - Added "Tear down what you created" — closing only self-created panes.
+  - Added "Trust boundary" — the socket's user-account-wide authority and
+    treating worker output as untrusted data rather than instructions.
+  - Extended "Safety and coordination rules" with the self-targeting rule.
+  - Updated the frontmatter description to cover fleet coordination while
+    keeping the original's conservative activation conditions.
+
+The original sections on CLI discovery, layout primitives, IDs and caller
+context, agent lifecycle and coordination, running commands in panes, and
+read sources are retained substantially as written upstream.

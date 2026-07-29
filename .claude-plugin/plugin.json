@@ -1,6 +1,7 @@
 {
   "name": "warrdoge-skills",
   "skills": [
-    "./skills/engineering/functional-simplicity"
+    "./skills/engineering/functional-simplicity",
+    "./skills/orchestration/herdr"
   ]
 }
