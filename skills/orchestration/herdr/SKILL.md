@@ -191,7 +191,9 @@ herdr agent read <target> --source recent-unwrapped --lines 25
   ```
 
   Do not re-issue `agent prompt` first. That stacks a second copy of the instruction behind
-  the first and the worker executes it twice.
+  the first and the worker executes it twice. Send the newline **once** and then poll — a
+  nudge on every poll iteration produces the same duplicate, which is an ugly way to discover
+  that your worker has run `/compact` twice.
 
 - **The turn started and died.** A transient provider error such as
   `API Error: 529 Overloaded` ends the turn with the prompt visible in the transcript and no
@@ -261,6 +263,17 @@ current costs almost nothing, and a coordinator watching several workers pays th
 on every poll. Fix the shape in the prompt so the fields are greppable, and give it one field —
 `NEEDS USER` — reserved for a physical action or a real decision, so the thing you escalate is
 never buried in status narration.
+
+Check the file's **mtime**, not just its contents. A status file whose text you have seen before
+means the worker has not reported since your last read — which is different from nothing having
+changed, and it is exactly what a worker looks like after its turn died. Two identical reads in a
+row are a reason to look at the pane, not a reason to relax.
+
+Provider capacity failures deserve one specific caution here: when several workers start failing
+at once, the tempting inference is that something about the *worker* is at fault — its context
+grew too large, its task was too big. Check that theory against a freshly spawned agent before
+you act on it. A brand-new session with almost no context failing the same way tells you the
+problem is upstream of your fleet, and spawning replacements will not fix it.
 
 ## Coordinate a fleet
 
