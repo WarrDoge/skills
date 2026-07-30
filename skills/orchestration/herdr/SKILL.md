@@ -96,9 +96,12 @@ Creation responses expose the IDs to use next. `workspace create` returns `.resu
 Filter `$HERDR_PANE_ID` out of every fan-out target list before acting:
 
 ```bash
-herdr agent list --json \
+herdr agent list \
   | jq -r --arg self "$HERDR_PANE_ID" '.result.agents[] | select(.pane_id != $self) | .pane_id'
 ```
+
+`agent list` already emits JSON. There is no `--json` flag on it; passing one exits with a
+bare `usage: herdr agent list` and status 2, which is easy to mistake for an empty roster.
 
 The same rule applies to `pane list`. Interrupt keys are the sharpest case: `agent send-keys <self> ctrl+c` aborts the very turn issuing it.
 
@@ -168,6 +171,37 @@ herdr agent read reviewer --source recent-unwrapped --lines 120
 
 If a wait fails or returns `blocked`, inspect `agent get` and `agent read` before deciding what input to send. Use the pane surface only when raw terminal control is intentional.
 
+## When a prompt does not take
+
+`agent_prompt_stalled` means Herdr saw no lifecycle change within five seconds. It does not
+tell you whether the text arrived. Two different failures produce it, and they need opposite
+responses, so read the pane before reacting:
+
+```bash
+herdr agent read <target> --source recent-unwrapped --lines 25
+```
+
+- **The text is sitting in the input box unsent.** Long multi-line prompts are especially
+  prone to this; the pane shows something like `❯ [Pasted text #18 +12 lines]`. The paste
+  landed but the submit did not. Send the newline yourself and confirm the state moved:
+
+  ```bash
+  herdr agent send-keys <target> enter
+  herdr agent get <target>
+  ```
+
+  Do not re-issue `agent prompt` first. That stacks a second copy of the instruction behind
+  the first and the worker executes it twice.
+
+- **The turn started and died.** A transient provider error such as
+  `API Error: 529 Overloaded` ends the turn with the prompt visible in the transcript and no
+  work done. The agent looks settled and innocent. Here the prompt genuinely must be resent —
+  say so when you resend, so the worker does not treat it as a duplicate.
+
+Never assume a prompt ran because the call returned. Between the two failures above, a
+coordinator that trusts `agent prompt` alone will wait indefinitely on a worker that never
+received its task. When a prompt matters, confirm the agent reached `working`.
+
 ## Run an ordinary command in another pane
 
 Create a sibling pane with the same geometry rule, preserve the caller's working directory, and keep user focus unchanged:
@@ -219,6 +253,14 @@ Rules that keep this honest:
 - Treat a missing or empty file as failure, not as "no findings". A worker that crashed and a worker that found nothing look identical otherwise.
 - Verify the file changed. A stale file from a previous run reads as success.
 - Keep `agent read` for diagnosing a worker that misbehaved, not for harvesting its answer.
+
+For work that runs for hours rather than minutes, give each worker a status file it
+**overwrites** rather than appends to, and poll that instead of the pane. Reading a pane costs
+a screenful of TUI redraw on every check; reading a twenty-line file that the worker keeps
+current costs almost nothing, and a coordinator watching several workers pays that difference
+on every poll. Fix the shape in the prompt so the fields are greppable, and give it one field —
+`NEEDS USER` — reserved for a physical action or a real decision, so the thing you escalate is
+never buried in status narration.
 
 ## Coordinate a fleet
 
