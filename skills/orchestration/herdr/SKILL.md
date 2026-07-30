@@ -195,6 +195,22 @@ herdr agent read <target> --source recent-unwrapped --lines 25
   nudge on every poll iteration produces the same duplicate, which is an ugly way to discover
   that your worker has run `/compact` twice.
 
+  **Check that the text is real before you submit it.** Some agent UIs render a suggested next
+  prompt as dim placeholder text in the input box. In a pane snapshot that is indistinguishable
+  from something a human typed and left unsent — it sits after the prompt marker and reads like
+  a plausible instruction. Pressing enter on it submits a machine-generated suggestion to a
+  worker as though a person had asked for it. The distinguishing mark is the styling, so read
+  with `--format ansi` and treat a dim sequence (`ESC[2m`) right after the prompt marker as
+  ghost text, never as input:
+
+  ```bash
+  herdr agent read <target> --source visible --format ansi --lines 40 | grep '❯' | tail -1
+  ```
+
+  Nudge only when the line carries real, undimmed text. And never press enter on a line you
+  believe the *user* typed and abandoned: either it is ghost text, or it is a human's unfinished
+  thought. Neither is yours to submit.
+
 - **The turn started and died.** A transient provider error such as
   `API Error: 529 Overloaded` ends the turn with the prompt visible in the transcript and no
   work done. The agent looks settled and innocent. Here the prompt genuinely must be resent —
