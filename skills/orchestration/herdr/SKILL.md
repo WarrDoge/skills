@@ -307,6 +307,36 @@ Report what actually happened. A worker that timed out, produced no file, or was
 
 Prefer in-process subagents when the work fits one repository and one context. They return structured values, cost less, and cannot outlive their caller. Reach for a Herdr fleet when workers need separate working directories, separate permissions, lifetimes longer than the coordinator's own context, or when the user wants to watch and take over a pane by hand.
 
+## Concurrent agents in one repository
+
+A fleet usually shares one machine and one checkout, and two writers in one working tree is the
+default failure, not an edge case: uncommitted edits interleave, `git add -A` sweeps the other
+agent's untracked files into your commit, a branch switch rewrites files under the other agent's
+feet, and a long build that parses the tree (bitbake, bazel, anything with a configure stage)
+dies mid-run when a peer saves a file it mounted. Measured 2026-08-13: two sessions writing one
+branch cost three killed builds, a corrupted parse cache, and an hour of untangling.
+
+- **One writing agent per working tree.** Every additional writer gets its own git worktree —
+  `herdr worktree` manages them, or `git worktree add` plus `pane split --cwd <worktree>`. Same
+  object store, separate trees: peer edits can no longer reparse your build or ride into your
+  commits, and branch switches stop being a shared hazard. Read-only agents (plan mode,
+  reviewers) may share a tree if they announce themselves and write nothing.
+- **The worktree boundary covers the repo only.** Build directories, caches, state dirs, device
+  sockets, deploy targets, and external services live outside it and stay shared. Each such
+  resource takes one owner at a time with explicit handoff: announce intent before starting,
+  hold your own writes while a peer's long job runs, ping on start and end. A lock file the
+  tooling itself maintains (`bitbake.lock` and kin) is the resource declaring that it
+  serializes — never delete a peer's lock or shared cache to un-wedge yourself before
+  confirming the peer's process is actually dead, because the wipe breaks every concurrent
+  user, not just you.
+- **In an unavoidably shared tree**: commit by explicit path list, never `-A` or `.`; split a
+  co-edited file with `git add -p`; tell the peer which hunks are whose.
+- **Before any long build or migration**, list peers (`herdr agent list`, ListAgents) and ask
+  the busy ones what they hold. One message is cheaper than the paragraph above.
+- **Commit authority is per-user, not per-fleet.** A peer's plan, however sensible, does not
+  authorize your commits, and yours does not authorize theirs; each agent clears its own with
+  its own user.
+
 ## Handle a blocked worker
 
 `blocked` means the agent is showing an approval or question UI. It will sit there until something answers.
