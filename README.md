@@ -30,6 +30,28 @@ the upstream copy first so they do not both register:
 skillfish remove herdr
 ```
 
+## Auto-load `functional-simplicity`
+
+Skills cannot register hooks themselves. To inject the skill into every session
+(like the ponytail plugin does) add a `SessionStart` hook to
+`~/.claude/settings.json`:
+
+```json
+"hooks": {
+  "SessionStart": [
+    {
+      "matcher": "startup|resume|clear|compact",
+      "hooks": [
+        { "type": "command", "command": "sed '1,/^---$/d' ~/.claude/skills/functional-simplicity/SKILL.md" }
+      ]
+    }
+  ]
+}
+```
+
+`sed` drops the frontmatter; the body lands in context as plain text and is
+re-injected after compaction.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
