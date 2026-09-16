@@ -2,6 +2,7 @@
   "name": "warrdoge-skills",
   "skills": [
     "./skills/engineering/functional-simplicity",
+    "./skills/engineering/no-ai-attribution",
     "./skills/hardware/board-console-access",
     "./skills/hardware/debug-probe-swd-jtag",
     "./skills/hardware/jetson-orin-triage",

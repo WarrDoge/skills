@@ -5,6 +5,7 @@ WarrDoge's agent skills.
 ## Skills
 
 - `functional-simplicity` - separate actions, calculations, and data during coding work.
+- `no-ai-attribution` - keep AI credit out of commits, PRs, docs, and comments; ships global git hooks that enforce it.
 - `herdr` - control [Herdr](https://herdr.dev) panes, tabs, and agents, and coordinate a fleet of worker agents.
 - `board-console-access` - open a debug channel to a headless single-board computer, and confirm the channel is telling the truth.
 - `raspberry-pi-boot-triage` - diagnose a Raspberry Pi 4 or 5 that will not boot, from LED codes to the bootloader EEPROM.

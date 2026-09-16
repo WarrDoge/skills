@@ -1,0 +1,86 @@
+#!/bin/sh
+# Global git hook (core.hooksPath), installed under every hook name. Rejects AI
+# attribution in commit-msg and pre-commit, then runs the repository's own hook.
+
+# Patterns: lowercase POSIX ERE, matched per line. Use [.] [(] [[] rather than
+# backslashes; awk and sh would each eat them differently.
+names='((github )?copilot|claude|chatgpt|openai|anthropic|codex|gemini|gpt|cursor|windsurf|aider|devin|qwen|deepseek)'
+model="([[:space:]-]*($names|code|cli|opus|sonnet|haiku|fable|pro|flash|ultra|mini|agent|assist|assistant|bot|[0-9][0-9a-z.]*|[(][^)]*[)]|[[]bot[]]))*"
+credit="(generated|written|created|authored|co-authored|assisted|produced|drafted|developed|made)( in part| partially)? (by|with|using|via)( the help of| help from)? (an? |the )?[[]?($names|ai|llm)([^a-z]|\$)"
+subject='((this|the) (file|code|module|function|class|script|test|commit|change|patch|implementation|document|readme|content)s? (was|were|is|are|has been) )?(partially |fully |mostly |automatically )?'
+bare='(ai|llm)[- ](generated|assisted|written|authored)'
+urls='(claude[.]ai/code/session_|chatgpt[.]com/codex/tasks/)'
+trailer='^(co-authored-by|assisted-by|generated-by|co-developed-by):[[:space:]]*'
+comment='(^[[:space:]]*([-*+>%;]+[[:space:]]*|"""[[:space:]]*)?|(//+|#+|/[*]+|--|<!--)[[:space:]]*)(🤖[[:space:]]*)?'
+
+msg_patterns="$trailer$names$model[[:space:]]*(<|\$)
+$trailer.*(@anthropic[.]com|@openai[.]com|copilot@users[.]noreply[.]github[.]com)
+^claude-session:
+$urls
+^[#[:space:]]*(🤖[[:space:]]*)?$subject$credit
+^[#[:space:]]*(🤖[[:space:]]*)?$bare[[:space:].!]*\$
+^(ai-assisted|ai-generated):"
+
+diff_patterns="$comment$subject$credit
+$comment$bare( code| content| file| text)?[[:space:].!:]*(-->|[*]/|\"\"\")?[[:space:]]*\$
+$urls"
+
+name=${0##*/}
+
+warn() { printf 'ai-attribution: %s\n' "$*" >&2; }
+
+report() {
+	warn "AI attribution in $1:"
+	printf '%s\n' "$2" >&2
+	warn "remove it; if intended, commit with ALLOW_AI_ATTRIBUTION=1 (see README)"
+	exit 1
+}
+
+check_msg() {
+	[ -r "$1" ] || { warn "cannot read $1, check skipped"; return 0; }
+	hits=$(P="$msg_patterns" LC_ALL=C awk '
+		BEGIN { n = split(ENVIRON["P"], p, "\n") }
+		/^[^[:space:]]+ -+ >8 -+$/ { exit }
+		{
+			l = tolower($0)
+			for (i = 1; i <= n; i++) if (l ~ p[i]) { printf "  line %d: %s\n", NR, $0; break }
+		}' "$1") || { warn "scan failed, check skipped"; return 0; }
+	[ -z "$hits" ] || report "commit message" "$hits"
+}
+
+check_staged() {
+	hits=$(git -c core.quotepath=off diff --cached -U0 --no-color --no-ext-diff --no-textconv \
+		--src-prefix=a/ --dst-prefix=b/ | P="$diff_patterns" LC_ALL=C awk '
+		BEGIN { n = split(ENVIRON["P"], p, "\n") }
+		/^diff --git / { hunk = 0; next }
+		!hunk && /^[+][+][+] / { f = substr($0, 5); sub(/^b[/]/, "", f); next }
+		/^@@ / { hunk = 1; split($3, a, ","); ln = substr(a[1], 2) + 0; next }
+		hunk && /^[+]/ {
+			l = tolower(substr($0, 2))
+			for (i = 1; i <= n; i++) if (l ~ p[i]) { printf "%s\t%d\t%s\n", f, ln, substr($0, 2); break }
+			ln++
+		}') || { warn "scan failed, check skipped"; return 0; }
+	[ -n "$hits" ] || return 0
+	out=
+	while IFS='	' read -r file line text; do
+		case $(git check-attr --cached ai-attribution-check -- "$file") in *': unset') continue ;; esac
+		out="$out  $file:$line: $text
+"
+	done <<EOF
+$hits
+EOF
+	[ -z "$out" ] || report "staged changes" "${out%?}"
+}
+
+if [ "${ALLOW_AI_ATTRIBUTION:-}" != 1 ]; then
+	case $name in
+	commit-msg) check_msg "$1" ;;
+	pre-commit) check_staged ;;
+	esac
+fi
+
+dir=$(git rev-parse --git-common-dir 2>/dev/null)/hooks || exit 0
+if [ -x "$dir/$name" ] && [ "$(cd "$dir" && pwd -P)" != "$(cd "${0%/*}" && pwd -P)" ]; then
+	exec "$dir/$name" "$@"
+fi
+exit 0
