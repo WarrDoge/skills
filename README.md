@@ -6,6 +6,10 @@ WarrDoge's agent skills.
 
 - `functional-simplicity` - separate actions, calculations, and data during coding work.
 - `herdr` - control [Herdr](https://herdr.dev) panes, tabs, and agents, and coordinate a fleet of worker agents.
+- `board-console-access` - open a debug channel to a headless single-board computer, and confirm the channel is telling the truth.
+- `raspberry-pi-boot-triage` - diagnose a Raspberry Pi 4 or 5 that will not boot, from LED codes to the bootloader EEPROM.
+- `jetson-orin-triage` - diagnose a Jetson Orin Nano over the debug UART, forced recovery, A/B slots, and USB device mode.
+- `debug-probe-swd-jtag` - use a Debug Probe as a console cable or an SWD/JTAG port, and know which one a target supports.
 
 ## Install
 

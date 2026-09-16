@@ -2,6 +2,10 @@
   "name": "warrdoge-skills",
   "skills": [
     "./skills/engineering/functional-simplicity",
+    "./skills/hardware/board-console-access",
+    "./skills/hardware/debug-probe-swd-jtag",
+    "./skills/hardware/jetson-orin-triage",
+    "./skills/hardware/raspberry-pi-boot-triage",
     "./skills/orchestration/herdr"
   ]
 }
