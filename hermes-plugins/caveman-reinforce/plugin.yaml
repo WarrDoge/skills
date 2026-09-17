@@ -1,0 +1,6 @@
+name: caveman-reinforce
+version: 0.1.0
+description: Re-inject the active caveman level (CAVEMAN_DEFAULT_MODE or ~/.config/caveman/config.json) into every turn so the style does not drift.
+author: WarrDoge
+provides_hooks:
+  - pre_llm_call

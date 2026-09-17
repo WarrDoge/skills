@@ -53,6 +53,22 @@ Skills cannot register hooks themselves. To inject the skill into every session
 `sed` drops the frontmatter; the body lands in context as plain text and is
 re-injected after compaction.
 
+## Hermes plugins
+
+- `caveman-reinforce` - re-injects the active [caveman](https://github.com/JuliusBrussee/caveman)
+  level into every Hermes turn. SOUL.md and the caveman skill are read once per
+  prompt build, so the style drifts in long sessions without it.
+
+```sh
+hermes plugins install WarrDoge/skills/hermes-plugins/caveman-reinforce --enable
+```
+
+Install the caveman skills first (`node bin/install.js --only hermes` from a
+caveman clone). The level comes from `CAVEMAN_DEFAULT_MODE` or `defaultMode` in
+`~/.config/caveman/config.json` (`lite`, `full`, `ultra`, `wenyan-*`, `off`),
+read on every turn. Check: `python3 test_caveman_reinforce.py` in the plugin
+directory.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
